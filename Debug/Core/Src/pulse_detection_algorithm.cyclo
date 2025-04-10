@@ -1,0 +1,4 @@
+../Core/Src/pulse_detection_algorithm.c:33:6:checkForBeat	11
+../Core/Src/pulse_detection_algorithm.c:83:9:averageDCEstimator	1
+../Core/Src/pulse_detection_algorithm.c:90:9:lowPassFIRFilter	2
+../Core/Src/pulse_detection_algorithm.c:107:9:mul16	1

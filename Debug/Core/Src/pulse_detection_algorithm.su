@@ -1,0 +1,4 @@
+../Core/Src/pulse_detection_algorithm.c:33:6:checkForBeat	24	static
+../Core/Src/pulse_detection_algorithm.c:83:9:averageDCEstimator	16	static
+../Core/Src/pulse_detection_algorithm.c:90:9:lowPassFIRFilter	24	static
+../Core/Src/pulse_detection_algorithm.c:107:9:mul16	16	static

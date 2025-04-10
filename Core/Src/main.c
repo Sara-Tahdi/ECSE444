@@ -23,6 +23,9 @@
 /* USER CODE BEGIN Includes */
 #include "max30102_for_stm32_hal.h"
 #include <stdio.h>
+#include <stdbool.h>
+#include "pulse_detection_algorithm.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,6 +50,13 @@ UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 max30102_t max30102;
+// Heart rate calculation variables
+#define RATE_SIZE 4  // Size of the array for storing heartbeat rates
+uint32_t lastBeat = 0;  // Time of the last detected heartbeat
+float beatsPerMinute = 0;
+uint8_t rates[RATE_SIZE]; // Array to store the last RATE_SIZE heart rate values
+uint8_t rateSpot = 0;
+uint8_t beatAvg = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -60,11 +70,13 @@ static void MX_I2C1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void max30102_plot(uint32_t ir_sample, uint32_t red_sample) {
-  char buffer[50];
-  sprintf(buffer, "IR: %lu, RED: %lu\r\n", ir_sample, red_sample);
-  HAL_UART_Transmit(&huart1, (uint8_t*)buffer, strlen(buffer), HAL_MAX_DELAY);
+
+int _write(int file, char *ptr, int len)
+{
+	HAL_UART_Transmit(&huart1, (uint8_t*)ptr, len, HAL_MAX_DELAY);
+	return len;
 }
+
 /* USER CODE END 0 */
 
 /**
@@ -99,7 +111,13 @@ int main(void)
   MX_USART1_UART_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-
+  lastBeat = HAL_GetTick();
+  beatsPerMinute = 0;
+  for (uint8_t i = 0; i < RATE_SIZE; i++) {
+      rates[i] = 0;
+  }
+  rateSpot = 0;
+  beatAvg = 0;
   // Initialize sensor
   max30102_init(&max30102, &hi2c1);
 
@@ -138,11 +156,43 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	  // Check if interrupt has occurred
-	    if (max30102_has_interrupt(&max30102)) {
-	      // Process the interrupt
+	  // Process the interrupt
 	      max30102_interrupt_handler(&max30102);
-	    }
+
+	      // Read data from FIFO
+	      max30102_read_fifo(&max30102);
+
+	      // Access the data from the max30102 object
+	      // The first sample in each array is the most recent
+	      uint32_t ir_sample = max30102._ir_samples[0];
+	      uint32_t red_sample = max30102._red_samples[0];
+
+	      // Check for heartbeat
+
+	      if (checkForBeat(ir_sample) == true)
+	      {
+	          // We sensed a beat!
+	          uint32_t currentTime = HAL_GetTick();
+	          uint32_t delta = currentTime - lastBeat;
+	          lastBeat = currentTime;
+
+	          beatsPerMinute = 60 / (delta / 1000.0);
+
+	          if (beatsPerMinute < 255 && beatsPerMinute > 20)
+	          {
+	              rates[rateSpot++] = (uint8_t)beatsPerMinute; // Store this reading in the array
+	              rateSpot %= RATE_SIZE; // Wrap variable
+
+	              // Take average of readings
+	              beatAvg = 0;
+	              for (uint8_t x = 0; x < RATE_SIZE; x++)
+	                  beatAvg += rates[x];
+	              beatAvg /= RATE_SIZE;
+
+	              // Print heart rate information
+	              printf("BPM: %.1f, Avg BPM: %u\r\n", beatsPerMinute, beatAvg);
+	          }
+	      }
 
 	    HAL_Delay(10);
 
