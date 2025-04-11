@@ -137,7 +137,7 @@ int main(void)
   max30102_set_led_current_2(&max30102, 6.2);
 
   // Enter SpO2 measurement mode
-  max30102_set_mode(&max30102, max30102_spo2);
+  max30102_set_mode(&max30102, max30102_heart_rate);
 
   // Enable interrupts
   max30102_set_a_full(&max30102, 1);
@@ -157,7 +157,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
 
 	  // Process the interrupt
-	      max30102_interrupt_handler(&max30102);
+	      //max30102_interrupt_handler(&max30102);
 
 	      // Read data from FIFO
 	      max30102_read_fifo(&max30102);
@@ -194,7 +194,7 @@ int main(void)
 	          }
 	      }
 
-	    HAL_Delay(10);
+	    //HAL_Delay(10);
 
   }
   /* USER CODE END 3 */
